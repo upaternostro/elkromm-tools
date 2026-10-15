@@ -15,15 +15,39 @@ import org.paternostro.elkromm.tools.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Reads a Hi-Connect backup file ({@link org.paternostro.elkromm.tools.Medium#BACKUP}).
+ * <p>
+ * The stream must start with the {@link CopyConfig#MAGIC} signature. The packets that follow are
+ * put together (a payload can span several packets), deserialized with the elkromm serializers
+ * and stored in the model; unexpected commands are logged and skipped.
+ * {@link Model#plantCode} is not read from the file: callers set it themselves.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class BackupReader extends AbstractStreamReader implements ModelReader
 {
+    /**
+     * Logger of this class.
+     */
     public static final Logger logger = LoggerFactory.getLogger(BackupReader.class);
 
+    /**
+     * Creates the reader.
+     *
+     * @param param the stream to read from
+     */
     public BackupReader(InputStream param)
     {
         super(param);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws ElkrommException if the file is too short to contain the signature, or its packets
+     *         cannot be decoded
+     */
     @Override
     public Model read() throws ElkrommException, IOException
     {

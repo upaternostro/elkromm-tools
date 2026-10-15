@@ -8,6 +8,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
+/**
+ * Writes {@link org.paternostro.elkromm.dto.PeripheralUnits} as JSON: for keypads, readers and
+ * expansions, how many there are and the array of their addresses.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class PeripheralUnitsSerializer extends JsonSerializer<PeripheralUnits>
 {
     @Override

@@ -8,6 +8,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
+/**
+ * Writes {@link org.paternostro.elkromm.dto.AreasAndPartitions} as JSON: the number of areas and
+ * the array of the areas, then the number of partitions and the array of the partitions.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class AreasAndPartitionsSerializer extends JsonSerializer<AreasAndPartitions>
 {
     @Override

@@ -28,14 +28,63 @@ import org.paternostro.elkromm.tools.model.actions.ModelReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Command line tool that copies the configuration of an Elkron MP-508 panel to one or more
+ * output files.
+ * <p>
+ * The source is either a Hi-Connect backup file ({@code -f}, or {@code -f -} for standard
+ * input) or a live panel reached over the LAN ({@code -H}); the two are mutually exclusive.
+ * A file given with {@code -f} must be a Hi-Connect backup: reading JSON is not implemented yet.
+ * <p>
+ * At least one output must be requested, and each of them receives the whole model:
+ * <ul>
+ * <li>{@code -b}: a Hi-Connect backup file ({@link Medium#BACKUP})</li>
+ * <li>{@code -j}: a pretty-printed JSON file ({@link Medium#JSON})</li>
+ * <li>{@code -p}: a properties file in the format used by the elkromm emulator
+ * ({@link Medium#PROPERTIES}), which only holds part of the configuration</li>
+ * </ul>
+ * Use {@code -} as file name to write to standard output, at most once per run.
+ * <p>
+ * With {@code -H}, the options {@code -P} (TCP port, default {@value #DEFAULT_PORT}) and
+ * {@code -t} (technician user PIN) are accepted; if the PIN is not given it is taken from the
+ * environment variable {@value #ENV_PIN_NAME} and, failing that, asked on the console. Both
+ * options are rejected when reading from a file. The plant code can be set with {@code -c}.
+ * <p>
+ * When the arguments are not valid the tool prints the usage on standard error and exits with
+ * status 1; {@code -h} prints it on standard output and exits with status 0.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class CopyConfig {
+    /**
+     * Logger of this class.
+     */
     public static final Logger  logger = LoggerFactory.getLogger(CopyConfig.class);
     
+    /**
+     * Signature found at the start of a Hi-Connect backup file.
+     */
     public static final String  MAGIC = "MP508V02";
+    /**
+     * TCP port used to reach the panel when {@code -P} is not given.
+     */
     public static final int     DEFAULT_PORT = 8030;
+    /**
+     * Plant code used when {@code -c} is not given.
+     */
     public static final int     DEFAULT_PLANT_CODE = 55555555;
+    /**
+     * Name of the environment variable that may hold the technician user PIN.
+     */
     public static final String  ENV_PIN_NAME = "ELKROMM_PIN";
 
+    /**
+     * Entry point of the tool.
+     *
+     * @param args command line arguments, see the description of this class
+     * @throws IOException if reading the source or writing an output fails
+     * @throws ElkrommException if the panel cannot be reached or answers unexpectedly, or if the source cannot be decoded
+     */
     public static void main(String[] args) throws IOException, ElkrommException
     {
         Options     options = new Options();
@@ -292,6 +341,7 @@ public class CopyConfig {
         // }
     }
 
+    // Prints the usage (on standard output for status 0, on standard error otherwise) and terminates the JVM
     private static void printHelpAndExit(Options options, int status, String message) throws IOException {
         PrintStream    ps = status == 0 ? System.out : System.err;
 

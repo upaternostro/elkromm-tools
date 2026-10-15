@@ -12,8 +12,24 @@ import org.paternostro.elkromm.dto.Output.Type;
 import org.paternostro.elkromm.emulator.Config;
 import org.paternostro.elkromm.tools.model.Model;
 
+/**
+ * Writes the properties file understood by the elkromm emulator
+ * ({@link org.paternostro.elkromm.tools.Medium#PROPERTIES}).
+ * <p>
+ * The file holds the number of peripheral units, areas, partitions, inputs and outputs: the
+ * rest of the configuration (users, keys, phone numbers...) cannot be expressed in this format
+ * and is left out. Values equal to the emulator defaults are omitted, and unused inputs and
+ * outputs are skipped, to keep the file short. The stream is flushed, not closed.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class PropertiesWriter extends AbstractStreamWriter implements ModelWriter
 {
+    /**
+     * Creates the writer.
+     *
+     * @param param the stream to write to
+     */
     public PropertiesWriter(OutputStream param)
     {
         super(param);

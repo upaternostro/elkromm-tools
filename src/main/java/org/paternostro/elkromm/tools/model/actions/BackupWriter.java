@@ -14,8 +14,23 @@ import org.paternostro.elkromm.packet.ElkrommPacket;
 import org.paternostro.elkromm.tools.CopyConfig;
 import org.paternostro.elkromm.tools.model.Model;
 
+/**
+ * Writes a model as a Hi-Connect backup file ({@link org.paternostro.elkromm.tools.Medium#BACKUP}).
+ * <p>
+ * The file starts with the {@link CopyConfig#MAGIC} signature, followed by one command for each
+ * part of the model. Every payload is serialized with the elkromm serializers and split into
+ * packets of at most {@link ElkrommFacade#MAX_DATA_LENGTH} bytes, all carrying
+ * {@link Model#plantCode}. Keypads and readers are written only if the model has them.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class BackupWriter extends AbstractStreamWriter implements ModelWriter
 {
+    /**
+     * Creates the writer.
+     *
+     * @param param the stream to write to
+     */
     public BackupWriter(OutputStream param)
     {
         super(param);

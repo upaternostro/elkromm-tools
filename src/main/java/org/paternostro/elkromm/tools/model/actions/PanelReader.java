@@ -6,8 +6,22 @@ import org.paternostro.elkromm.ElkrommException;
 import org.paternostro.elkromm.ElkrommFacade;
 import org.paternostro.elkromm.tools.model.Model;
 
+/**
+ * Reads the whole configuration of a panel, or of the elkromm emulator
+ * ({@link org.paternostro.elkromm.tools.Medium#PANEL}), through a logged-in facade, asking for one
+ * part at a time. Keypads and readers are requested only if the peripheral units say that there
+ * are some. {@link Model#plantCode} is not filled in: callers set it themselves.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class PanelReader extends AbstractPanelAction implements ModelReader
 {
+    /**
+     * Creates the reader.
+     *
+     * @param param the facade to use, which must be logged in
+     * @throws IllegalStateException if the facade is not logged in
+     */
     public PanelReader(ElkrommFacade param)
     {
         super(param);

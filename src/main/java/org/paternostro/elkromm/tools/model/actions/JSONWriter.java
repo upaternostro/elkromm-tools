@@ -10,8 +10,19 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+/**
+ * Writes a model as pretty-printed JSON ({@link org.paternostro.elkromm.tools.Medium#JSON}),
+ * using Jackson. The stream is not closed.
+ * <p>
+ * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
+ */
 public class JSONWriter extends AbstractStreamWriter implements ModelWriter
 {
+    /**
+     * Creates the writer.
+     *
+     * @param param the stream to write to
+     */
     public JSONWriter(OutputStream param)
     {
         super(param);
