@@ -63,13 +63,6 @@ public class BackupReader extends AbstractStreamReader implements ModelReader
 
                 retval = new Model();
 
-                // try {
-                //     retval.plantCode = cmd.getParsedOptionValue(pCode);
-                // } catch (ParseException e) {
-                //     logger.error("Error parsing pCode parameter", e);
-                //     printHelpAndExit(options, 1, e.getMessage());
-                // }
-
                 while (is.available() > 0) {
                     packet = ElkrommPacket.deserialize(is);
 
