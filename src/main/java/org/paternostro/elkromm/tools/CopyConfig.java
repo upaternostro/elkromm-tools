@@ -208,7 +208,7 @@ public class CopyConfig {
             try {
                 plantCode = cmd.getParsedOptionValue(pCode);
             } catch (ParseException e) {
-                logger.error("Error parsing --\" + pCode.getLongOpt() + \" parameter", e);
+                logger.error("Error parsing --" + pCode.getLongOpt() + " parameter", e);
                 printHelpAndExit(options, 1, e.getMessage());
             }
         }
@@ -225,7 +225,7 @@ public class CopyConfig {
                 try {
                     pin = cmd.getParsedOptionValue(tPin);
                 } catch (ParseException e) {
-                    logger.error("Error parsing --\" + tPin.getLongOpt() + \" parameter", e);
+                    logger.error("Error parsing --" + tPin.getLongOpt() + " parameter", e);
                     printHelpAndExit(options, 1, e.getMessage());
                 }
             } else {
@@ -248,7 +248,7 @@ public class CopyConfig {
                 try {
                     portNum = cmd.getParsedOptionValue(port);
                 } catch (ParseException e) {
-                    logger.error("Error parsing --\" + port.getLongOpt() + \" parameter", e);
+                    logger.error("Error parsing --" + port.getLongOpt() + " parameter", e);
                     printHelpAndExit(options, 1, e.getMessage());
                 }
             }
@@ -260,7 +260,7 @@ public class CopyConfig {
                                                     plantCode
                                                 );
 
-            facade.connect();;
+            facade.connect();
             facade.login(plantCode, pin);
 
             reader = maf.getReader(Medium.PANEL, facade);
@@ -282,7 +282,7 @@ public class CopyConfig {
                 try {
                     is = cmd.getParsedOptionValue(file);
                 } catch (ParseException e) {
-                    logger.error("Error parsing --\" + file.getLongOpt() + \" parameter", e);
+                    logger.error("Error parsing --" + file.getLongOpt() + " parameter", e);
                     printHelpAndExit(options, 1, e.getMessage());
                 }
             }
@@ -291,15 +291,9 @@ public class CopyConfig {
         }
 
         Model           model = reader.read(); // se l'input non è da host (sto leggendo un file o stdin) e questa read fallisce, forse l'input è JSON e non backup binario
-
-        try {
-            model.plantCode = cmd.getParsedOptionValue(pCode);
-        } catch (ParseException e) {
-            logger.error("Error parsing --\" + pCode.getLongOpt() + \" parameter", e);
-            printHelpAndExit(options, 1, e.getMessage());
-        }
-
         OutputStream    os = null;
+
+        model.plantCode = plantCode;
 
         for (Option o : outputs) {
             if (cmd.hasOption(o)) {

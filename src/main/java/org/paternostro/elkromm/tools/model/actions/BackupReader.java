@@ -126,10 +126,13 @@ public class BackupReader extends AbstractStreamReader implements ModelReader
                         }
                     }
                 }
+            } else {
+                logger.error("Wrong file signature");
+                throw new ElkrommException("Wrong signature, \"" + CopyConfig.MAGIC + "\" expected");
             }
         } else {
             logger.error("Cannot read file signature");
-            throw new ElkrommException("Missing " + CopyConfig.MAGIC + " signature");
+            throw new ElkrommException("Cannot read file signature");
         }
 
         return retval;

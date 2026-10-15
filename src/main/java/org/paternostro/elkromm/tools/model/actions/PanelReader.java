@@ -43,7 +43,7 @@ public class PanelReader extends AbstractPanelAction implements ModelReader
         model.c200bParameters = facade.getC200bParameters();
         model.sMSs = facade.getSMSs();
         model.pstnGsm = facade.getPSTNGSM();
-        model.users = facade.getKeys();
+        model.users = facade.getUsers();
         model.keys = facade.getKeys();
         model.parametersEnablings = facade.getParametersEnablings();
 
