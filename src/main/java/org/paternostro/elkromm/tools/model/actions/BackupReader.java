@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  * The stream must start with the {@link CopyConfig#MAGIC} signature. The packets that follow are
  * put together (a payload can span several packets), deserialized with the elkromm serializers
  * and stored in the model; unexpected commands are logged and skipped.
- * {@link Model#plantCode} is not read from the file: callers set it themselves.
+ * {@link Model#plantCode} is not present in the file: callers set it themselves.
  * <p>
  * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
  */
