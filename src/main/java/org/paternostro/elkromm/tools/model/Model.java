@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  * <p>
  * A plain data holder: one public field per part of the configuration, each of them
  * corresponding to a command of the Elkron protocol and typed with the matching
- * {@link org.paternostro.elkromm.dto} class of the elkromm library. A field is {@code null} when
+ * {@code org.paternostro.elkromm.dto} class of the elkromm library. A field is {@code null} when
  * that part has not been read, or does not exist (for instance keypads on a panel without
  * keypads).
  * <p>

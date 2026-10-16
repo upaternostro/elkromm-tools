@@ -45,8 +45,8 @@ public class BackupReader extends AbstractStreamReader implements ModelReader
     /**
      * {@inheritDoc}
      *
-     * @throws ElkrommException if the file is too short to contain the signature, or its packets
-     *         cannot be decoded
+     * @throws ElkrommException if the file is too short to contain the signature, the signature
+     *         is wrong, or its packets cannot be decoded
      */
     @Override
     public Model read() throws ElkrommException, IOException
