@@ -132,7 +132,7 @@ public class CopyConfig {
                             .desc("properties file to write (use \"-\" to write to standard output)")
                             .type(File.class)
                             .get();
-
+    
     /**
      * Resource manager to cleanup source stream/connection
      */
@@ -162,8 +162,8 @@ public class CopyConfig {
      */
     private static final class Destination implements AutoCloseable {
         final ModelWriter writer;
-        private final ElkrommFacade facade;  // null when reading a file
-        private final OutputStream  os;      // null when reading a panel, or standard input
+        private final ElkrommFacade facade;  // null when writing a file
+        private final OutputStream  os;      // null when writing a panel, or standard output
 
         Destination(ModelWriter writer, ElkrommFacade facade, OutputStream os) { 
             this.writer = writer;
@@ -191,24 +191,27 @@ public class CopyConfig {
      * @throws IOException if reading the source or writing an output fails
      * @throws ElkrommException if the panel cannot be reached or answers unexpectedly, or if the source cannot be decoded
      */
-    public static void main(String[] args) throws IOException, ElkrommException
+    public static void main(String[] args) throws IOException
     {
-        Options     options = new Options();
+        Options             options = new Options();
 
         // source options group (mutually exclusive)
-        OptionGroup optionGroup = new OptionGroup();
+        OptionGroup         optionGroup = new OptionGroup();
 
-        optionGroup.addOption(CMDLINE_OPT_HELP);
-        optionGroup.addOption(CMDLINE_OPT_FILE);
-        optionGroup.addOption(CMDLINE_OPT_HOST);
-        optionGroup.setRequired(true);
+        optionGroup.addOption(CMDLINE_OPT_HELP)
+                    .addOption(CMDLINE_OPT_FILE)
+                    .addOption(CMDLINE_OPT_HOST)
+                    .setRequired(true);
         options.addOptionGroup(optionGroup);
 
+        // plant code
         options.addOption(CMDLINE_OPT_PLANT_CODE);
 
-        options.addOption(CMDLINE_OPT_PORT);
-        options.addOption(CMDLINE_OPT_TECH_PIN);
+        // panel parameters
+        options.addOption(CMDLINE_OPT_PORT)
+                .addOption(CMDLINE_OPT_TECH_PIN);
 
+        // outputs
         options.addOption(CMDLINE_OPT_BACKUP)
                 .addOption(CMDLINE_OPT_JSON)
                 .addOption(CMDLINE_OPT_PROPS);
@@ -227,9 +230,9 @@ public class CopyConfig {
             printHelpAndExit(options, 0, null);
         }
 
-        Option[]        outputs = { CMDLINE_OPT_BACKUP, CMDLINE_OPT_JSON, CMDLINE_OPT_PROPS };
-        int             outputCount = 0;
-        int             stdoutUsage = 0;
+        Option[]            outputs = { CMDLINE_OPT_BACKUP, CMDLINE_OPT_JSON, CMDLINE_OPT_PROPS };
+        int                 outputCount = 0;
+        int                 stdoutUsage = 0;
 
         for (Option o : outputs) {
             if (cmd.hasOption(o)) {
@@ -251,7 +254,7 @@ public class CopyConfig {
             printHelpAndExit(options, 1, "Cannot use standard output more than once");
         }
 
-        int plantCode = DEFAULT_PLANT_CODE;
+        int                 plantCode = DEFAULT_PLANT_CODE;
 
         if (cmd.hasOption(CMDLINE_OPT_PLANT_CODE)) {
             try {
@@ -262,15 +265,23 @@ public class CopyConfig {
             }
         }
 
+        Model               model = null;
+
         try (Source src = openSource(cmd, options, plantCode)) {
-            Model               model = src.reader.read(); // se l'input non è da host (sto leggendo un file o stdin) e questa read fallisce, forse l'input è JSON e non backup binario
+            model = src.reader.read(); // se l'input non è da host (sto leggendo un file o stdin) e questa read fallisce, forse l'input è JSON e non backup binario
 
             model.plantCode = plantCode;
+        } catch (Exception e) {
+            logger.error("Cannot read source", e);
+        }
 
+        if (model != null) {
             for (Option o : outputs) {
                 if (cmd.hasOption(o)) {
                     try (Destination dest = openDestination(cmd, options, o, model)) {
                         dest.writer.write(model);
+                    } catch (Exception e) {
+                        logger.error("Cannot write destination --" + o.getLongOpt(), e);
                     }
                 }
             }
@@ -300,8 +311,13 @@ public class CopyConfig {
                 try {
                     pin = Integer.parseInt(System.getenv(ENV_PIN_NAME));
                 } catch (Exception e) {
-                    System.err.print("Insert technical user PIN: ");
-                    pin = Integer.parseInt(new String(System.console().readPassword()));
+                    if (System.console() != null) {
+                        System.console().printf("Insert technical user PIN: ");
+                        try {
+                            pin = Integer.parseInt(new String(System.console().readPassword()));
+                        } catch (Exception e2) {
+                        }
+                    }
                 }
             }
 
@@ -331,19 +347,18 @@ public class CopyConfig {
             try {
                 facade.connect();
                 facade.login(plantCode, pin);
-            } catch (ElkrommException e) {
-                logger.error("Error initializing facade", e);
-                throw e;
+                reader = maf.getReader(Medium.PANEL, facade);
+            } catch (Throwable t) {
+                try { facade.close(); } catch (Throwable t2) { t.addSuppressed(t2); }
+                throw t;
             }
-
-            reader = maf.getReader(Medium.PANEL, facade);
         } else {
             // modalità file: host/port/pin non hanno senso
             Option[] illegalOptions = {CMDLINE_OPT_PORT, CMDLINE_OPT_TECH_PIN};
 
             for (Option o : illegalOptions) {
                 if (cmd.hasOption(o)) {
-                    printHelpAndExit(options, 1, "--" + o.getLongOpt() + " requires --host");
+                    printHelpAndExit(options, 1, "--" + o.getLongOpt() + " requires --" + CMDLINE_OPT_HOST.getLongOpt());
                 }
             }
 
@@ -401,10 +416,12 @@ public class CopyConfig {
                 writer = maf.getWriter(Medium.PROPERTIES, os);
                 break;
             // FIXME: aggiungere opzione per scrivere su pannello
+            default:
+                throw new AssertionError("Unhandled output option --" + o.getLongOpt());
         }
 
         if ("-".equals(cmd.getOptionValue(o))) {
-            // nel caso di stdout passo null a Source in modo che non venga chiuso (intanto Writer ha già memorizzato lo stream)
+            // nel caso di stdout passo null a Destination in modo che non venga chiuso (intanto Writer ha già memorizzato lo stream)
             os = null;
         }
 
