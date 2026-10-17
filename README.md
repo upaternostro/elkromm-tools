@@ -56,16 +56,22 @@ This software is licensed under EUPL v1.2 or above. See [LICENSE.md](LICENSE.md)
 
 ## Usage
 
-The tool is `org.paternostro.elkromm.tools.CopyConfig`. The jar does not declare a main class
-yet, so run it with the project classpath, for instance:
+The tool is `org.paternostro.elkromm.tools.CopyConfig`, the main class of the jar. Unpack a
+release archive (`.zip` or `.tar.gz`) and run:
 
 ```
-mvn compile dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
-java -cp "target/classes:$(cat target/classpath.txt)" org.paternostro.elkromm.tools.CopyConfig -h
+java -jar elkromm-tools-<version>.jar -h
 ```
 
-(use `;` instead of `:` as classpath separator on Windows). The same class can be started
-from an IDE.
+The `lib` folder, which holds the dependencies, must stay next to the jar. The same works on a
+local build (see [Compile](#compile)), straight from the `target` folder:
+
+```
+java -jar target/elkromm-tools-<version>.jar -h
+```
+
+The same class can also be started from an IDE. In the examples below `CopyConfig` stands for
+the command above.
 
 ### Options
 
@@ -167,6 +173,9 @@ Registration is not synchronized: do it at start-up.
 mvn install
 ```
 
+The build leaves in `target` the jar, a `lib` folder with the runtime dependencies, and the release
+archives (`.zip` and `.tar.gz`).
+
 ## Documentation
 
 The API is documented with Javadoc. Generate it locally with:
@@ -175,7 +184,8 @@ The API is documented with Javadoc. Generate it locally with:
 mvn javadoc:javadoc
 ```
 
-The generated HTML is written to `target/site/apidocs`.
+The generated HTML is written to an `apidocs` folder under `target` (with the current version of
+the Maven Javadoc plugin, `target/reports/apidocs`; the exact location depends on the plugin version).
 
 ## Roadmap
 
