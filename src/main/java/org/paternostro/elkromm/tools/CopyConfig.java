@@ -52,8 +52,10 @@ import org.slf4j.LoggerFactory;
  * environment variable {@value #ENV_PIN_NAME} and, failing that, asked on the console. Both
  * options are rejected when reading from a file. The plant code can be set with {@code -c}.
  * <p>
- * When the arguments are not valid the tool prints the usage on standard error and exits with
- * status 1; {@code -h} prints it on standard output and exits with status 0.
+ * Exit status: 0 on success; 1 when the arguments are not valid (the usage is printed on standard
+ * error; {@code -h} prints it on standard output and exits with status 0); 2 when the source cannot
+ * be read, in which case no output is written, or when at least one output cannot be written: the
+ * remaining outputs are still attempted. Failures are logged.
  * <p>
  * Copyright Ugo Paternostro 2026. Licensed under the EUPL-1.2 or later.
  */
@@ -80,7 +82,15 @@ public class CopyConfig {
      */
     public static final String  ENV_PIN_NAME = "ELKROMM_PIN";
 
+    public static final int     EXIT_STATUS_OK = 0;
+    public static final int     EXIT_STATUS_WRONG_PARAM = 1;
+    public static final int     EXIT_STATUS_IO_ERROR = 2;
+    
     // Command line options
+    private static final String BACKUP_LONGOPT = "backup";
+    private static final String JSON_LONGOPT = "json";
+    private static final String PROPS_LONGOPT = "properties";
+
     private static final Option CMDLINE_OPT_HELP = Option.builder("h")
                             .longOpt("help")
                             .desc("prints this help and exits")
@@ -115,24 +125,24 @@ public class CopyConfig {
                             .type(Integer.class)
                             .get();
     private static final Option CMDLINE_OPT_BACKUP = Option.builder("b")
-                            .longOpt("backup")
+                            .longOpt(BACKUP_LONGOPT)
                             .hasArg()
                             .desc("file to write (use \"-\" to write to standard output)")
                             .type(File.class)
                             .get();
     private static final Option CMDLINE_OPT_JSON = Option.builder("j")
-                            .longOpt("json")
+                            .longOpt(JSON_LONGOPT)
                             .hasArg()
                             .desc("JSON file to write (use \"-\" to write to standard output)")
                             .type(File.class)
                             .get();
     private static final Option CMDLINE_OPT_PROPS = Option.builder("p")
-                            .longOpt("properties")
+                            .longOpt(PROPS_LONGOPT)
                             .hasArg()
                             .desc("properties file to write (use \"-\" to write to standard output)")
                             .type(File.class)
                             .get();
-    
+
     /**
      * Resource manager to cleanup source stream/connection
      */
@@ -177,8 +187,11 @@ public class CopyConfig {
                 if (facade != null) facade.close();      // logout + disconnect
             } finally {
                 if (os != null) {
-                    os.flush();
-                    os.close();
+                    try {
+                        os.flush();
+                    } finally {
+                        os.close();
+                    }
                 }
             }
         }
@@ -186,13 +199,16 @@ public class CopyConfig {
 
     /**
      * Entry point of the tool.
+     * <p>
+     * Failures while reading the source or writing an output are logged and not thrown; see the
+     * description of this class for the exit status.
      *
      * @param args command line arguments, see the description of this class
-     * @throws IOException if reading the source or writing an output fails
-     * @throws ElkrommException if the panel cannot be reached or answers unexpectedly, or if the source cannot be decoded
+     * @throws IOException if the usage cannot be printed
      */
     public static void main(String[] args) throws IOException
     {
+        int                 status = EXIT_STATUS_OK;
         Options             options = new Options();
 
         // source options group (mutually exclusive)
@@ -223,7 +239,7 @@ public class CopyConfig {
             cmd = parser.parse(options, args);
         } catch (ParseException e) {
             logger.error("Error parsing parameters", e);
-            printHelpAndExit(options, 1, e.getMessage());
+            printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, e.getMessage());
         }
 
         if (cmd.hasOption(CMDLINE_OPT_HELP)) {
@@ -246,12 +262,12 @@ public class CopyConfig {
 
         if (outputCount == 0) {
             logger.error("No output specified");
-            printHelpAndExit(options, 1, "No output specified");
+            printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, "No output specified");
         }
 
         if (stdoutUsage > 1) {
             logger.error("Cannot use standard output more than once");
-            printHelpAndExit(options, 1, "Cannot use standard output more than once");
+            printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, "Cannot use standard output more than once");
         }
 
         int                 plantCode = DEFAULT_PLANT_CODE;
@@ -261,7 +277,7 @@ public class CopyConfig {
                 plantCode = cmd.getParsedOptionValue(CMDLINE_OPT_PLANT_CODE);
             } catch (ParseException e) {
                 logger.error("Error parsing --" + CMDLINE_OPT_PLANT_CODE.getLongOpt() + " parameter", e);
-                printHelpAndExit(options, 1, e.getMessage());
+                printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, e.getMessage());
             }
         }
 
@@ -273,6 +289,7 @@ public class CopyConfig {
             model.plantCode = plantCode;
         } catch (Exception e) {
             logger.error("Cannot read source", e);
+            status = EXIT_STATUS_IO_ERROR;
         }
 
         if (model != null) {
@@ -282,10 +299,13 @@ public class CopyConfig {
                         dest.writer.write(model);
                     } catch (Exception e) {
                         logger.error("Cannot write destination --" + o.getLongOpt(), e);
+                        status = EXIT_STATUS_IO_ERROR;
                     }
                 }
             }
         }
+
+        System.exit(status);
     }
 
     private static Source openSource(CommandLine cmd, Options options, int plantCode) throws IOException, ElkrommException
@@ -305,7 +325,7 @@ public class CopyConfig {
                     pin = cmd.getParsedOptionValue(CMDLINE_OPT_TECH_PIN);
                 } catch (ParseException e) {
                     logger.error("Error parsing --" + CMDLINE_OPT_TECH_PIN.getLongOpt() + " parameter", e);
-                    printHelpAndExit(options, 1, e.getMessage());
+                    printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, e.getMessage());
                 }
             } else {
                 try {
@@ -313,17 +333,22 @@ public class CopyConfig {
                 } catch (Exception e) {
                     if (System.console() != null) {
                         System.console().printf("Insert technical user PIN: ");
+
                         try {
                             pin = Integer.parseInt(new String(System.console().readPassword()));
                         } catch (Exception e2) {
+                            if (System.getenv(ENV_PIN_NAME) != null) e2.addSuppressed(e); // add only for unparsable PINs
+
+                            logger.error("Error reading PIN from console", e2);
+                            throw e2;
                         }
                     }
                 }
             }
 
             if (pin == -1) {
-                logger.error("No PIN specified");
-                printHelpAndExit(options, 1, "No PIN specified");
+                logger.error("No PIN specified: use --tech-pin, set " + ENV_PIN_NAME + ", or run without redirecting standard output so that it can be asked");
+                printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, "No PIN specified: use --tech-pin, set " + ENV_PIN_NAME + ", or run without redirecting standard output so that it can be asked");
             }
 
             int portNum = DEFAULT_PORT;
@@ -333,7 +358,7 @@ public class CopyConfig {
                     portNum = cmd.getParsedOptionValue(CMDLINE_OPT_PORT);
                 } catch (ParseException e) {
                     logger.error("Error parsing --" + CMDLINE_OPT_PORT.getLongOpt() + " parameter", e);
-                    printHelpAndExit(options, 1, e.getMessage());
+                    printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, e.getMessage());
                 }
             }
 
@@ -358,7 +383,7 @@ public class CopyConfig {
 
             for (Option o : illegalOptions) {
                 if (cmd.hasOption(o)) {
-                    printHelpAndExit(options, 1, "--" + o.getLongOpt() + " requires --" + CMDLINE_OPT_HOST.getLongOpt());
+                    printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, "--" + o.getLongOpt() + " requires --" + CMDLINE_OPT_HOST.getLongOpt());
                 }
             }
 
@@ -369,7 +394,7 @@ public class CopyConfig {
                     is = cmd.getParsedOptionValue(CMDLINE_OPT_FILE);
                 } catch (ParseException e) {
                     logger.error("Error parsing --" + CMDLINE_OPT_FILE.getLongOpt() + " parameter", e);
-                    printHelpAndExit(options, 1, e.getMessage());
+                    printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, e.getMessage());
                 }
             }
 
@@ -398,20 +423,20 @@ public class CopyConfig {
                 os = new FileOutputStream((File)cmd.getParsedOptionValue(o));
             } catch (ParseException e) {
                 logger.error("Error parsing --" + o.getLongOpt() + " parameter", e);
-                printHelpAndExit(options, 1, e.getMessage());
+                printHelpAndExit(options, EXIT_STATUS_WRONG_PARAM, e.getMessage());
             }
         }
 
         switch (o.getLongOpt()) {
-            case "backup":
+            case BACKUP_LONGOPT:
                 // Scrittura binaria a partire dal modello deserializzato
                 writer = maf.getWriter(Medium.BACKUP, os);
                 break;
-            case "json":
+            case JSON_LONGOPT:
                 // Scrittura JSON
                 writer = maf.getWriter(Medium.JSON, os);
                 break;
-            case "properties":
+            case PROPS_LONGOPT:
                 // Scrittura properties ad uso emulatore
                 writer = maf.getWriter(Medium.PROPERTIES, os);
                 break;

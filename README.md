@@ -98,7 +98,8 @@ variable `ELKROMM_PIN` and, failing that, asked on the console. Passing a PIN on
 line leaves it in the shell history and in the process list, so the variable or the prompt are
 preferable.
 
-On bad arguments the tool prints the usage on standard error and exits with status 1.
+On bad arguments the tool prints the usage on standard error and exits with status 1. If the source
+cannot be read, or an output cannot be written, it logs the error and exits with status 2.
 
 ### Examples
 
